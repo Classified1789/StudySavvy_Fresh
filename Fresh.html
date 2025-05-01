@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudySavvy - Your Learning Companion</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Basic styling for dark mode */
+        body {
+            background-color: #222222;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif; /* Using Inter font */
+        }
+        /* Gradient styles for cards and elements */
+        .blue-gradient { background: linear-gradient(135deg, #0055A4 0%, #003b72 100%); }
+        .red-gradient { background: linear-gradient(135deg, #DC143C 0%, #a01030 100%); }
+        .green-gradient { background: linear-gradient(135deg, #117C13 0%, #0a5c0c 100%); }
+        .orange-gradient { background: linear-gradient(135deg, #DA7756 0%, #b65a3e 100%); }
+        .purple-gradient { background: linear-gradient(135deg, #8A2BE2 0%, #5a1c96 100%); }
+        .yellow-text { color: #eded3e; }
+
+        /* Hover effect for cards */
+        .card-hover { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.25); }
+
+        /* Sidebar styling */
+        .sidebar-item { border-left: 4px solid transparent; transition: background-color 0.2s ease, border-left-color 0.2s ease; }
+        .sidebar-item.active { border-left-color: #0055A4; background-color: #333333; }
+        .sidebar-item:hover:not(.active) { background-color: #3a3a3a; }
+
+        /* Section visibility control */
+        .section { display: none; }
+        .section.active { display: block; animation: fadeIn 0.5s ease-in-out; }
+
+        /* Fade-in animation */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Calendar styling */
+        .calendar-day { transition: background-color 0.2s ease; }
+        .calendar-day:hover:not(.disabled):not(.today) { background-color: #444; }
+        .calendar-day.today { background-color: #0055A4; color: white; font-weight: bold; }
+        .calendar-day.disabled { color: #555; }
+        .calendar-day .dot { width: 6px; height: 6px; border-radius: 50%; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); display: none; /* Hide dots for new user */ }
+
+        /* Ensure elements are rounded */
+        * { border-radius: 0.375rem; /* Equivalent to rounded-lg */ }
+        body, html { border-radius: 0; } /* Reset for body/html */
+        .rounded-full { border-radius: 9999px; }
+        .rounded-t-sm { border-top-left-radius: 0.125rem; border-top-right-radius: 0.125rem; }
+
+        /* Placeholder text styling */
+        .placeholder-text {
+            text-align: center;
+            color: #9ca3af; /* gray-400 */
+            padding: 2rem;
+            border: 2px dashed #4b5563; /* gray-600 */
+            border-radius: 0.75rem; /* rounded-xl */
+            background-color: #374151; /* gray-700 */
+            margin-top: 1rem;
+        }
+
+        /* Responsive Design Considerations */
+        @media (max-width: 768px) {
+            .ml-64 { margin-left: 0; } /* Remove margin for sidebar on small screens */
+            .fixed.h-full.w-64 { display: none; } /* Hide sidebar on small screens (consider a toggle) */
+            .grid-cols-4, .grid-cols-3, .grid-cols-12, .grid-cols-2 { grid-template-columns: repeat(1, minmax(0, 1fr)); } /* Stack grids */
+            .col-span-2, .col-span-3, .col-span-9 { grid-column: span 1 / span 1; } /* Reset column spans */
+            header div:first-child { text-align: center; margin-bottom: 1rem; }
+            header { flex-direction: column; align-items: center; }
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="antialiased">
+    <div class="fixed h-full w-64 bg-[#333333] shadow-lg z-10">
+        <div class="p-6">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 blue-gradient rounded-lg flex items-center justify-center">
+                    <i class="fas fa-graduation-cap text-white text-lg"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-[#eded3e]">StudySavvy</h1>
+            </div>
+        </div>
+
+        <nav class="mt-6">
+            <a href="#" class="flex items-center px-6 py-3 sidebar-item active text-white" data-section="dashboard">
+                <i class="fas fa-tachometer-alt w-5 mr-3"></i> Dashboard
+            </a>
+            <a href="#" class="flex items-center px-6 py-3 sidebar-item text-gray-300 hover:text-white" data-section="courses">
+                <i class="fas fa-book-open w-5 mr-3"></i> My Courses
+            </a>
+            <a href="#" class="flex items-center px-6 py-3 sidebar-item text-gray-300 hover:text-white" data-section="planner">
+                <i class="fas fa-calendar-alt w-5 mr-3"></i> Study Planner
+            </a>
+            <a href="#" class="flex items-center px-6 py-3 sidebar-item text-gray-300 hover:text-white" data-section="resources">
+                <i class="fas fa-folder w-5 mr-3"></i> Resources
+            </a>
+            <a href="#" class="flex items-center px-6 py-3 sidebar-item text-gray-300 hover:text-white" data-section="analytics">
+                <i class="fas fa-chart-line w-5 mr-3"></i> Analytics
+            </a>
+        </nav>
+
+        <div class="absolute bottom-0 left-0 w-full p-4 border-t border-gray-700">
+             <a href="#" class="flex items-center px-2 py-2 sidebar-item text-gray-300 hover:text-white" data-section="settings">
+                <i class="fas fa-cog w-5 mr-3"></i> Settings
+            </a>
+        </div>
+    </div>
+
+    <div class="ml-64 p-8">
+        <header class="flex justify-between items-center mb-8 flex-wrap">
+            <div>
+                <h2 class="text-2xl font-bold text-white">Welcome to StudySavvy!</h2>
+                <p class="text-gray-400">Let's get your learning journey started.</p>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <button class="p-2 rounded-full bg-[#444444] hover:bg-[#555555] relative">
+                    <i class="fas fa-bell text-[#eded3e]"></i>
+                    </button>
+                <div class="flex items-center space-x-2 cursor-pointer p-1 rounded-lg hover:bg-[#444444]">
+                    <div class="w-10 h-10 blue-gradient rounded-full flex items-center justify-center text-white font-bold">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <span class="text-gray-300 hidden sm:inline">New User</span>
+                    <i class="fas fa-chevron-down text-gray-400 text-xs ml-1"></i>
+                </div>
+            </div>
+        </header>
+
+        <section id="dashboard" class="section active">
+            <h2 class="text-2xl font-bold mb-6 text-white">Dashboard</h2>
+            <div class="placeholder-text">
+                <i class="fas fa-rocket text-4xl mb-4 text-blue-400"></i>
+                <h3 class="text-xl font-semibold mb-2 text-white">Ready to get started?</h3>
+                <p>Your dashboard will show your progress and upcoming tasks once you add courses and plan your schedule.</p>
+                <div class="mt-4 space-x-4">
+                    <button class="px-4 py-2 rounded-lg blue-gradient text-white font-medium hover:opacity-90 transition duration-200" onclick="navigateToSection('courses')">
+                        <i class="fas fa-plus mr-2"></i>Add a Course
+                    </button>
+                    <button class="px-4 py-2 rounded-lg green-gradient text-white font-medium hover:opacity-90 transition duration-200" onclick="navigateToSection('planner')">
+                        <i class="fas fa-calendar-plus mr-2"></i>Plan Your Study
+                    </button>
+                </div>
+            </div>
+            </section>
+
+        <section id="courses" class="section">
+            <div id="course-grid">
+                <h2 class="text-2xl font-bold mb-6 text-white">My Courses</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-[#333333] rounded-xl shadow-lg overflow-hidden flex items-center justify-center h-full min-h-[200px] border-2 border-dashed border-gray-600 card-hover cursor-pointer hover:border-gray-500 hover:bg-[#3a3a3a]">
+                        <div class="text-center">
+                            <div class="w-12 h-12 bg-[#444444] mx-auto rounded-full flex items-center justify-center mb-2 text-gray-400 group-hover:text-white">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            <p class="text-gray-400 group-hover:text-white">Add New Course</p>
+                        </div>
+                    </div>
+                </div>
+                 <div class="placeholder-text" id="no-courses-placeholder">
+                    <i class="fas fa-book-open text-4xl mb-4 text-green-400"></i>
+                    <h3 class="text-xl font-semibold mb-2 text-white">No Courses Yet</h3>
+                    <p>Click the 'Add New Course' card above to start organizing your subjects.</p>
+                </div>
+            </div>
+
+            <div id="course-detail" class="hidden">
+                 <button id="back-to-courses" class="mb-6 px-4 py-2 rounded-lg bg-gray-500 text-white text-sm font-medium hover:bg-gray-600 transition duration-200">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Courses
+                </button>
+                <div class="bg-[#333333] rounded-xl shadow-lg p-8">
+                    <div class="flex items-center mb-6">
+                        <div id="course-detail-icon-container" class="w-16 h-16 rounded-lg flex items-center justify-center mr-4">
+                            <i id="course-detail-icon" class="fas text-3xl text-white opacity-90"></i>
+                        </div>
+                        <h2 id="course-detail-title" class="text-3xl font-bold text-white">Course Name</h2>
+                    </div>
+                    <p class="text-gray-400 mb-6">Course-specific materials, assignments, and announcements will appear here.</p>
+                    <div class="bg-[#444444] p-6 rounded-lg min-h-[300px]">
+                        <h4 class="text-lg font-semibold text-white mb-4">Course Content</h4>
+                        <p class="text-gray-300">Add syllabus, modules, assignments, grades, etc. for this course.</p>
+                        <ul class="list-disc list-inside text-blue-400 mt-4 space-y-2">
+                            <li><a href="#" class="hover:underline">Upload Syllabus</a></li>
+                            <li><a href="#" class="hover:underline">Create Module 1</a></li>
+                            <li><a href="#" class="hover:underline">Add Assignment</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="planner" class="section">
+            <h2 class="text-2xl font-bold mb-6 text-white">Study Planner</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 bg-[#333333] p-6 rounded-xl shadow-lg">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-white">May 2025</h3>
+                        <div class="flex space-x-2">
+                            <button class="p-2 rounded-lg bg-[#444444] hover:bg-[#555555] text-gray-300">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="p-2 rounded-lg bg-[#444444] hover:bg-[#555555] text-gray-300">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-7 gap-1 text-center">
+                        <div class="text-xs font-medium text-gray-400 py-2 uppercase">Sun</div>
+                        <div class="text-xs font-medium text-gray-400 py-2 uppercase">Mon</div>
+                        <div class="text-xs font-medium text-gray-400 py-2 uppercase">Tue</div>
+                        <div class="text-xs font-medium text-gray-400 py-2 uppercase">Wed</div>
+                        <div class="text-xs font-medium text-gray-400 py-2 uppercase">Thu</div>
+                        <div class="text-xs font-medium text-gray-400 py-2 uppercase">Fri</div>
+                        <div class="text-xs font-medium text-gray-400 py-2 uppercase">Sat</div>
+
+                        <div class="py-3 calendar-day disabled">27</div>
+                        <div class="py-3 calendar-day disabled">28</div>
+                        <div class="py-3 calendar-day disabled">29</div>
+                        <div class="py-3 calendar-day disabled">30</div>
+                        <div class="py-3 calendar-day relative">1</div>
+                        <div class="py-3 calendar-day today relative">2</div>
+                        <div class="py-3 calendar-day relative">3</div>
+                        <div class="py-3 calendar-day relative">4</div>
+                        <div class="py-3 calendar-day relative">5</div>
+                        <div class="py-3 calendar-day">6</div>
+                        <div class="py-3 calendar-day">7</div>
+                        <div class="py-3 calendar-day relative">8</div>
+                        <div class="py-3 calendar-day">9</div>
+                        <div class="py-3 calendar-day">10</div>
+                        <div class="py-3 calendar-day">11</div>
+                        <div class="py-3 calendar-day">12</div>
+                        <div class="py-3 calendar-day">13</div>
+                        <div class="py-3 calendar-day">14</div>
+                        <div class="py-3 calendar-day">15</div>
+                        <div class="py-3 calendar-day">16</div>
+                        <div class="py-3 calendar-day">17</div>
+                         <div class="py-3 calendar-day">18</div>
+                        <div class="py-3 calendar-day">19</div>
+                        <div class="py-3 calendar-day">20</div>
+                        <div class="py-3 calendar-day">21</div>
+                        <div class="py-3 calendar-day">22</div>
+                        <div class="py-3 calendar-day">23</div>
+                        <div class="py-3 calendar-day">24</div>
+                         <div class="py-3 calendar-day">25</div>
+                        <div class="py-3 calendar-day">26</div>
+                        <div class="py-3 calendar-day">27</div>
+                        <div class="py-3 calendar-day">28</div>
+                        <div class="py-3 calendar-day">29</div>
+                        <div class="py-3 calendar-day">30</div>
+                        <div class="py-3 calendar-day">31</div>
+                    </div>
+                </div>
+
+                <div class="bg-[#333333] p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-4 text-white">Today's Schedule</h3>
+                    <div class="placeholder-text py-10">
+                         <i class="fas fa-calendar-check text-4xl mb-4 text-blue-400"></i>
+                         <p>No study blocks scheduled for today.</p>
+                    </div>
+                    <button class="w-full py-3 mt-4 rounded-lg blue-gradient text-white font-medium hover:opacity-90 transition duration-200">
+                        <i class="fas fa-plus mr-2"></i>Add Study Block
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="resources" class="section">
+            <h2 class="text-2xl font-bold mb-6 text-white">Resources</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-3">
+                    <div class="bg-[#333333] p-4 rounded-xl shadow-lg mb-6 sticky top-8">
+                        <h3 class="text-lg font-bold text-white mb-3">Categories</h3>
+                        <div class="space-y-2">
+                            <button class="w-full text-left p-2 rounded bg-[#0055A4] text-white font-medium flex items-center resource-category-btn active">
+                                <i class="fas fa-users w-5 mr-2"></i>Peer Tutoring
+                            </button>
+                            <button class="w-full text-left p-2 rounded hover:bg-[#444444] text-gray-300 flex items-center resource-category-btn">
+                                <i class="fas fa-book w-5 mr-2"></i>Study Guides
+                            </button>
+                            <button class="w-full text-left p-2 rounded hover:bg-[#444444] text-gray-300 flex items-center resource-category-btn">
+                                <i class="fas fa-file-pdf w-5 mr-2"></i>Course Materials
+                            </button>
+                            <button class="w-full text-left p-2 rounded hover:bg-[#444444] text-gray-300 flex items-center resource-category-btn">
+                                <i class="fas fa-video w-5 mr-2"></i>Video Tutorials
+                            </button>
+                            <button class="w-full text-left p-2 rounded hover:bg-[#444444] text-gray-300 flex items-center resource-category-btn">
+                                <i class="fas fa-clipboard-list w-5 mr-2"></i>Practice Tests
+                            </button>
+                            <button class="w-full text-left p-2 rounded hover:bg-[#444444] text-gray-300 flex items-center resource-category-btn">
+                                <i class="fas fa-link w-5 mr-2"></i>External Resources
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bg-[#333333] p-4 rounded-xl shadow-lg sticky top-60">
+                        <h3 class="text-lg font-bold text-white mb-3">Filters</h3>
+                         <div class="mb-4">
+                            <label class="block text-gray-400 text-sm mb-1 font-medium">Subject</label>
+                            <select class="w-full bg-[#444444] text-white rounded p-2 border border-[#555555] focus:outline-none focus:border-blue-500">
+                                <option>All Subjects</option>
+                                </select>
+                        </div>
+                         <button class="w-full py-2 mt-2 rounded-lg bg-[#555555] text-white font-medium hover:bg-[#666666] transition duration-200">
+                            Apply Filters
+                        </button>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-9">
+                    <div class="placeholder-text">
+                        <i class="fas fa-folder-open text-4xl mb-4 text-orange-400"></i>
+                        <h3 class="text-xl font-semibold mb-2 text-white">Explore Resources</h3>
+                        <p>Find study guides, materials, tutors, and more. Resources relevant to your courses will appear here once you add them.</p>
+                        <button class="mt-4 px-4 py-2 rounded-lg orange-gradient text-white font-medium hover:opacity-90 transition duration-200">
+                            Browse General Tips
+                        </button>
+                    </div>
+                    </div>
+            </div>
+        </section>
+
+        <section id="analytics" class="section">
+            <h2 class="text-2xl font-bold mb-6 text-white">Analytics</h2>
+             <div class="placeholder-text">
+                <i class="fas fa-chart-pie text-4xl mb-4 text-purple-400"></i>
+                <h3 class="text-xl font-semibold mb-2 text-white">Track Your Progress</h3>
+                <p>Your study analytics, time distribution, and performance insights will be displayed here as you use StudySavvy.</p>
+                <p class="mt-2">Start studying to see your data!</p>
+            </div>
+            </section>
+
+        <section id="settings" class="section">
+             <h2 class="text-2xl font-bold mb-6 text-white">Settings</h2>
+             <div class="bg-[#333333] p-8 rounded-xl shadow-lg">
+                  <p class="text-gray-400">Configure your profile, notification preferences, theme options, and other settings here.</p>
+                 <div class="mt-6 space-y-4">
+                     <div class="flex items-center justify-between p-4 bg-[#444444] rounded-lg">
+                         <span class="text-white">Dark Mode</span>
+                         <label class="relative inline-flex items-center cursor-pointer">
+                           <input type="checkbox" value="" class="sr-only peer" checked disabled> <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                         </label>
+                     </div>
+                      <div class="flex items-center justify-between p-4 bg-[#444444] rounded-lg">
+                         <span class="text-white">Email Notifications</span>
+                         <button class="text-sm text-blue-400 hover:underline">Manage</button>
+                     </div>
+                     <div class="flex items-center justify-between p-4 bg-[#444444] rounded-lg">
+                         <span class="text-white">Account Information</span>
+                         <button class="text-sm text-blue-400 hover:underline">Edit Profile</button>
+                     </div>
+                 </div>
+             </div>
+        </section>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarItems = document.querySelectorAll('.sidebar-item');
+            const sections = document.querySelectorAll('.section');
+            const courseGrid = document.getElementById('course-grid');
+            const courseDetail = document.getElementById('course-detail');
+            // Course continue buttons might not exist initially, handle gracefully
+            // const courseContinueBtns = document.querySelectorAll('.course-continue-btn');
+            const backToCoursesBtn = document.getElementById('back-to-courses');
+            const resourceCategoryBtns = document.querySelectorAll('.resource-category-btn');
+            // Analytics buttons might not exist initially, handle gracefully
+            // const analyticsPeriodBtns = document.querySelectorAll('.analytics-period-btn');
+            const noCoursesPlaceholder = document.getElementById('no-courses-placeholder');
+
+            // --- Navigation ---
+            function setActiveSection(targetSectionId) {
+                // Update Sidebar
+                sidebarItems.forEach(sidebarItem => {
+                    sidebarItem.classList.toggle('active', sidebarItem.getAttribute('data-section') === targetSectionId);
+                    // Ensure text color is correct
+                    if (sidebarItem.getAttribute('data-section') === targetSectionId) {
+                         sidebarItem.classList.add('text-white');
+                         sidebarItem.classList.remove('text-gray-300');
+                    } else {
+                         sidebarItem.classList.add('text-gray-300');
+                         sidebarItem.classList.remove('text-white');
+                    }
+                });
+                // Update Sections
+                sections.forEach(section => {
+                    section.classList.toggle('active', section.id === targetSectionId);
+                });
+
+                // Special handling for courses view
+                if (targetSectionId === 'courses') {
+                    showCourseGrid(); // Default to grid view when navigating to courses
+                    updateNoCoursesPlaceholder(); // Check if placeholder needs to be shown
+                }
+            }
+
+            // Helper function to navigate programmatically (e.g., from dashboard buttons)
+            window.navigateToSection = function(sectionId) {
+                setActiveSection(sectionId);
+            }
+
+            sidebarItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetSection = this.getAttribute('data-section');
+                    setActiveSection(targetSection);
+                });
+            });
+
+            // --- Course Navigation & Placeholders ---
+            function showCourseGrid() {
+                if (courseGrid) courseGrid.style.display = 'block';
+                if (courseDetail) courseDetail.style.display = 'none';
+                updateNoCoursesPlaceholder();
+            }
+
+            function showCourseDetail(courseData) {
+                if (courseGrid) courseGrid.style.display = 'none';
+                if (courseDetail) {
+                    courseDetail.style.display = 'block';
+                    // Populate detail view
+                    const titleEl = courseDetail.querySelector('#course-detail-title');
+                    const iconEl = courseDetail.querySelector('#course-detail-icon');
+                    const iconContainerEl = courseDetail.querySelector('#course-detail-icon-container');
+
+                    if (titleEl) titleEl.textContent = courseData.name;
+                    if (iconEl) {
+                        iconEl.className = `fas ${courseData.icon} text-3xl text-white opacity-90`; // Reset and set classes
+                    }
+                     if (iconContainerEl) {
+                         // Remove existing gradient classes before adding new one
+                         iconContainerEl.className = 'w-16 h-16 rounded-lg flex items-center justify-center mr-4'; // Reset base classes
+                         iconContainerEl.classList.add(courseData.color);
+                     }
+                    // Add more population logic here if needed (e.g., load content)
+                }
+            }
+
+            // Function to check if any course cards exist (excluding the 'add' card)
+            function checkCoursesExist() {
+                const courseCards = courseGrid ? courseGrid.querySelectorAll('.grid > div:not(:has(.fa-plus))') : [];
+                return courseCards.length > 0;
+            }
+
+            // Function to show/hide the "No courses" placeholder
+            function updateNoCoursesPlaceholder() {
+                 if (noCoursesPlaceholder) {
+                    noCoursesPlaceholder.style.display = checkCoursesExist() ? 'none' : 'block';
+                 }
+            }
+
+            // Event listeners for dynamically added course buttons would need event delegation
+            // Example (if adding courses dynamically):
+            // if (courseGrid) {
+            //     courseGrid.addEventListener('click', function(e) {
+            //         const button = e.target.closest('.course-continue-btn');
+            //         if (button) {
+            //              const courseData = {
+            //                 name: button.dataset.courseName,
+            //                 icon: button.dataset.courseIcon,
+            //                 color: button.dataset.courseColor
+            //             };
+            //             showCourseDetail(courseData);
+            //         }
+            //     });
+            // }
+
+            if (backToCoursesBtn) {
+                backToCoursesBtn.addEventListener('click', showCourseGrid);
+            }
+
+            // --- Resource Categories ---
+            resourceCategoryBtns.forEach(button => {
+                button.addEventListener('click', function() {
+                    resourceCategoryBtns.forEach(btn => {
+                        btn.classList.remove('bg-[#0055A4]', 'text-white', 'active');
+                        btn.classList.add('hover:bg-[#444444]', 'text-gray-300');
+                    });
+                    this.classList.add('bg-[#0055A4]', 'text-white', 'active');
+                    this.classList.remove('hover:bg-[#444444]', 'text-gray-300');
+                    // Add filtering logic here based on the clicked category
+                    console.log("Filter resources by:", this.textContent.trim());
+                    // Update the main content area based on the category
+                });
+            });
+
+            // --- Analytics Period (Placeholder, no data to show) ---
+            const analyticsPeriodBtns = document.querySelectorAll('.analytics-period-btn');
+             analyticsPeriodBtns.forEach(button => {
+                button.addEventListener('click', function() {
+                    analyticsPeriodBtns.forEach(btn => {
+                        btn.classList.remove('bg-[#0055A4]', 'text-white', 'active');
+                        btn.classList.add('bg-[#444444]', 'hover:bg-[#555555]', 'text-gray-300');
+                    });
+                    this.classList.add('bg-[#0055A4]', 'text-white', 'active');
+                    this.classList.remove('bg-[#444444]', 'hover:bg-[#555555]', 'text-gray-300');
+                    const period = this.dataset.period;
+                    // In a real app, fetch and redraw chart data here (currently does nothing)
+                    console.log("Update analytics for period:", period);
+                });
+            });
+
+            // --- Initial Setup ---
+            // Ensure the default section is visible on load
+            setActiveSection('dashboard');
+            // Check course placeholder on load
+            updateNoCoursesPlaceholder();
+
+        });
+    </script>
+</body>
+</html>
